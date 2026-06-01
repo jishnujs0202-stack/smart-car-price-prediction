@@ -62,11 +62,10 @@ color:#C9D1D9;
 # LOAD MODEL & DATA
 # --------------------------
 
-
-model, feature_columns = load_model()
-
-st.write("TOTAL FEATURES =", len(feature_columns))
-st.write(feature_columns)
+def load_model():
+    model = joblib.load("models/random_forest.pkl")
+    cols = joblib.load("feature_columns.pkl")
+    return model, cols
 
 
 @st.cache_data
@@ -86,10 +85,9 @@ def load_data():
 model, feature_columns = load_model()
 df_raw = load_data()
 
-st.write("FEATURE COLUMNS")
+st.write("TOTAL FEATURES =", len(feature_columns))
 st.write(feature_columns)
-st.write("MODEL FEATURES")
-st.write(feature_columns)
+
 # Auto-detect selling price column
 price_col = None
 
