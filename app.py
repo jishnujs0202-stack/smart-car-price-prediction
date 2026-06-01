@@ -131,7 +131,7 @@ def load_model():
 @st.cache_data
 def load_data():
     try:
-        df = pd.read_csv("car data.csv")
+        df = pd.read_csv("car_data.csv")
         return df
     except FileNotFoundError:
         return None
