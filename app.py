@@ -4,7 +4,7 @@ import numpy as np
 import joblib
 from datetime import datetime
 import matplotlib.pyplot as plt
-st.title("🚨 VERSION TEST 02-JUNE")
+
 
 st.set_page_config(
     page_title="Smart Car Price Prediction",
@@ -157,7 +157,7 @@ with c1:
 with c2:
     st.markdown(f"""
     <div class='metric-card'>
-    <h3>{len(df_raw)}</h3>
+    <h3>{len(df_raw):,}</h3>
     <p>Cars</p>
     </div>
     """, unsafe_allow_html=True)
