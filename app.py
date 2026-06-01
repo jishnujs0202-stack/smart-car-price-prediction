@@ -62,11 +62,11 @@ color:#C9D1D9;
 # LOAD MODEL & DATA
 # --------------------------
 
-@st.cache_resource
-def load_model():
-    model = joblib.load("models/random_forest.pkl")
-    cols = joblib.load("feature_columns.pkl")
-    return model, cols
+
+model, feature_columns = load_model()
+
+st.write("TOTAL FEATURES =", len(feature_columns))
+st.write(feature_columns)
 
 
 @st.cache_data
