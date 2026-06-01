@@ -17,7 +17,6 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-
 .stApp{
 background:#0E1117;
 color:white;
@@ -55,12 +54,11 @@ color:#00C6FF;
 text-align:center;
 color:#C9D1D9;
 }
-
 </style>
 """, unsafe_allow_html=True)
 
 # --------------------------
-# LOAD MODEL
+# LOAD MODEL & DATA
 # --------------------------
 
 @st.cache_resource
@@ -69,12 +67,35 @@ def load_model():
     cols = joblib.load("feature_columns.pkl")
     return model, cols
 
+
 @st.cache_data
 def load_data():
-   return pd.read_csv("dataset/car_data.csv")
+    df = pd.read_csv("dataset/car_data.csv")
+
+    df.columns = (
+        df.columns
+        .str.strip()
+        .str.lower()
+        .str.replace(" ", "_")
+    )
+
+    return df
+
 
 model, feature_columns = load_model()
 df_raw = load_data()
+
+# Auto-detect selling price column
+price_col = None
+
+for col in df_raw.columns:
+    if "selling" in str(col).lower() and "price" in str(col).lower():
+        price_col = col
+        break
+
+if price_col is None:
+    st.error(f"Selling price column not found. Columns found: {df_raw.columns.tolist()}")
+    st.stop()
 
 # --------------------------
 # HEADER
@@ -100,6 +121,11 @@ st.sidebar.title("Project Information")
 st.sidebar.info("""
 Model: Random Forest Regressor
 
+Performance:
+- R² Score: 96.97%
+- MAE: ₹69,612.87
+- RMSE: ₹140,949.71
+
 Features:
 - KM Driven
 - Fuel Type
@@ -117,12 +143,13 @@ Features:
 # DASHBOARD
 # --------------------------
 
-c1,c2,c3,c4 = st.columns(4)
+c1, c2, c3, c4 = st.columns(4)
 
 with c1:
     st.markdown("""
     <div class='metric-card'>
     <h3>🤖 Random Forest</h3>
+    <p>Model</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -137,16 +164,16 @@ with c2:
 with c3:
     st.markdown("""
     <div class='metric-card'>
-    <h3>10</h3>
-    <p>Features</p>
+    <h3>96.97%</h3>
+    <p>R² Score</p>
     </div>
     """, unsafe_allow_html=True)
 
 with c4:
     st.markdown("""
     <div class='metric-card'>
-    <h3>⚡ ML</h3>
-    <p>Prediction</p>
+    <h3>₹69.6K</h3>
+    <p>MAE</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -154,7 +181,7 @@ with c4:
 # TABS
 # --------------------------
 
-tab1,tab2,tab3 = st.tabs([
+tab1, tab2, tab3 = st.tabs([
     "Predict Price",
     "EDA",
     "Dataset"
@@ -168,10 +195,9 @@ with tab1:
 
     st.subheader("Enter Car Details")
 
-    col1,col2 = st.columns(2)
+    col1, col2 = st.columns(2)
 
     with col1:
-
         km_driven = st.number_input(
             "KM Driven",
             min_value=0,
@@ -180,11 +206,13 @@ with tab1:
 
         mileage = st.number_input(
             "Mileage",
+            min_value=0.0,
             value=20.0
         )
 
         engine = st.number_input(
             "Engine CC",
+            min_value=500,
             value=1200
         )
 
@@ -196,7 +224,6 @@ with tab1:
         )
 
     with col2:
-
         purchase_year = st.slider(
             "Year",
             1994,
@@ -206,17 +233,17 @@ with tab1:
 
         fuel = st.selectbox(
             "Fuel",
-            ["Petrol","Diesel","CNG","LPG"]
+            ["Petrol", "Diesel", "CNG", "LPG"]
         )
 
         seller_type = st.selectbox(
             "Seller Type",
-            ["Dealer","Individual","Trustmark Dealer"]
+            ["Dealer", "Individual", "Trustmark Dealer"]
         )
 
         transmission = st.selectbox(
             "Transmission",
-            ["Manual","Automatic"]
+            ["Manual", "Automatic"]
         )
 
         owner = st.selectbox(
@@ -231,10 +258,13 @@ with tab1:
 
         max_power = st.number_input(
             "Max Power",
+            min_value=20.0,
             value=75.0
         )
 
     car_age = datetime.now().year - purchase_year
+
+    st.info(f"Car Age: {car_age} years")
 
     if st.button("Predict Price"):
 
@@ -244,6 +274,7 @@ with tab1:
             "engine": engine,
             "max_power": max_power,
             "seats": seats,
+            "car_age": car_age,
             "Car_Age": car_age
         }
 
@@ -268,6 +299,7 @@ with tab1:
             input_data[owner_col] = 1
 
         input_df = pd.DataFrame([input_data])
+
         input_df = input_df.reindex(
             columns=feature_columns,
             fill_value=0
@@ -280,6 +312,7 @@ with tab1:
 
         st.markdown(f"""
         <div class='prediction-card'>
+        Estimated Price<br><br>
         ₹ {prediction:,.0f}
         </div>
         """, unsafe_allow_html=True)
@@ -297,24 +330,31 @@ with tab2:
     st.subheader("Dataset Analysis")
 
     fig, ax = plt.subplots()
-
-    ax.hist(
-        df_raw["selling_price"],
-        bins=30
-    )
-
+    ax.hist(df_raw[price_col], bins=30)
     ax.set_title("Selling Price Distribution")
-
+    ax.set_xlabel("Selling Price")
+    ax.set_ylabel("Count")
     st.pyplot(fig)
 
-    fuel_avg = (
-        df_raw.groupby("fuel")
-        ["selling_price"]
-        .mean()
-        .sort_values()
-    )
+    if "fuel" in df_raw.columns:
+        fuel_avg = (
+            df_raw.groupby("fuel")[price_col]
+            .mean()
+            .sort_values()
+        )
 
-    st.bar_chart(fuel_avg)
+        st.subheader("Average Price by Fuel Type")
+        st.bar_chart(fuel_avg)
+
+    if "transmission" in df_raw.columns:
+        trans_avg = (
+            df_raw.groupby("transmission")[price_col]
+            .mean()
+            .sort_values()
+        )
+
+        st.subheader("Average Price by Transmission")
+        st.bar_chart(trans_avg)
 
 # --------------------------
 # DATASET
@@ -326,15 +366,20 @@ with tab3:
 
     st.dataframe(
         df_raw,
-        use_container_width=True
+        width="stretch"
     )
 
     st.write("Shape:", df_raw.shape)
 
-    st.write("Missing Values")
+    st.subheader("Missing Values")
+
+    missing = df_raw.isnull().sum().reset_index()
+    missing.columns = ["Column", "Missing Values"]
 
     st.dataframe(
-        df_raw.isnull().sum().reset_index()
+        missing,
+        width="stretch",
+        hide_index=True
     )
 
 # --------------------------
