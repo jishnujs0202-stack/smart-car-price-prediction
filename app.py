@@ -4,6 +4,7 @@ import numpy as np
 import joblib
 from datetime import datetime
 import matplotlib.pyplot as plt
+st.title("🚨 VERSION TEST 02-JUNE")
 
 st.set_page_config(
     page_title="Smart Car Price Prediction",
