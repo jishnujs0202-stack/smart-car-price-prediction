@@ -512,7 +512,9 @@ with tab3:
 
             df = df_raw.copy()
             df["Car_Age"] = datetime.now().year - df["Year"]
-            df = pd.get_dummies(df, columns=["Fuel_Type", "Seller_Type", "Transmission"], drop_first=False)
+            # Drop only columns that exist to avoid KeyError
+            cat_cols = [c for c in ["Fuel_Type", "Seller_Type", "Selling_type", "Transmission"] if c in df.columns]
+            df = pd.get_dummies(df, columns=cat_cols, drop_first=False)
             df = df.drop(columns=["Car_Name", "Year"], errors="ignore")
 
             X = df.drop(columns=["Selling_Price"])
