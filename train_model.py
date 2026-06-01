@@ -1,114 +1,115 @@
-# ==========================================
-# SMART CAR PRICE PREDICTION SYSTEM
-# ==========================================
+import os
+from datetime import datetime
 
-import pandas as pd
-import numpy as np
 import joblib
-import matplotlib.pyplot as plt
-import seaborn as sns
+import numpy as np
+import pandas as pd
 
-from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import (
-    r2_score,
-    mean_absolute_error,
-    mean_squared_error
-)
+from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
+from sklearn.model_selection import train_test_split
+
 
 # ==========================================
 # LOAD DATASET
 # ==========================================
 
-df = pd.read_csv("dataset/car_data.csv")
+DATA_PATH = "dataset/car_data.csv"
+
+print("Loading dataset...")
+
+df = pd.read_csv(DATA_PATH)
+
+# Standardize column names
+df.columns = (
+    df.columns
+    .str.strip()
+    .str.lower()
+    .str.replace(" ", "_")
+)
 
 print("\nFirst 5 Rows")
 print(df.head())
 
-print("\nDataset Information")
-print(df.info())
+print("\nDataset Shape:", df.shape)
 
-print("\nStatistical Summary")
-print(df.describe())
 
-print("\nMissing Values")
-print(df.isnull().sum())
+# ==========================================
+# CLEAN NUMERIC COLUMNS
+# ==========================================
+
+def extract_number(value):
+    value = str(value)
+    result = pd.Series(value).str.extract(r"(\d+\.?\d*)")[0]
+    return float(result.iloc[0]) if pd.notna(result.iloc[0]) else np.nan
+
+
+df["mileage"] = df["mileage"].apply(extract_number)
+df["engine"] = df["engine"].apply(extract_number)
+df["max_power"] = df["max_power"].apply(extract_number)
+
+df["mileage"] = df["mileage"].fillna(df["mileage"].median())
+df["engine"] = df["engine"].fillna(df["engine"].median())
+df["max_power"] = df["max_power"].fillna(df["max_power"].median())
+df["seats"] = df["seats"].fillna(df["seats"].median())
+
 
 # ==========================================
 # FEATURE ENGINEERING
 # ==========================================
 
-CURRENT_YEAR = 2026
+CURRENT_YEAR = datetime.now().year
 
-df["Car_Age"] = CURRENT_YEAR - df["Year"]
+df["Car_Age"] = CURRENT_YEAR - df["year"]
 
-# ==========================================
-# VISUALIZATION
-# ==========================================
-
-plt.figure(figsize=(8,5))
-sns.histplot(df["Selling_Price"], kde=True)
-plt.title("Selling Price Distribution")
-plt.show()
-
-plt.figure(figsize=(8,5))
-sns.scatterplot(
-    data=df,
-    x="Car_Age",
-    y="Selling_Price"
-)
-plt.title("Car Age vs Selling Price")
-plt.show()
-
-plt.figure(figsize=(8,5))
-sns.boxplot(
-    data=df,
-    x="Fuel_Type",
-    y="Selling_Price"
-)
-plt.title("Fuel Type vs Selling Price")
-plt.show()
-
-numeric_df = df.select_dtypes(include=["int64", "float64"])
-
-plt.figure(figsize=(8,6))
-sns.heatmap(
-    numeric_df.corr(),
-    annot=True,
-    cmap="coolwarm"
-)
-plt.title("Correlation Heatmap")
-plt.show()
 
 # ==========================================
-# PREPROCESSING
+# SELECT FEATURES
 # ==========================================
 
-df.drop(["Car_Name", "Year"], axis=1, inplace=True)
+features = [
+    "km_driven",
+    "fuel",
+    "seller_type",
+    "transmission",
+    "owner",
+    "mileage",
+    "engine",
+    "max_power",
+    "seats",
+    "Car_Age"
+]
 
-df = pd.get_dummies(
-    df,
-    drop_first=True
+target = "selling_price"
+
+X = df[features]
+y = df[target]
+
+
+# ==========================================
+# ONE-HOT ENCODING
+# ==========================================
+
+X = pd.get_dummies(
+    X,
+    columns=[
+        "fuel",
+        "seller_type",
+        "transmission",
+        "owner"
+    ],
+    drop_first=False
 )
 
-# ==========================================
-# SAVE FEATURE COLUMNS
-# ==========================================
+feature_columns = X.columns.tolist()
 
-X = df.drop("Selling_Price", axis=1)
+print("\nModel Features:")
+print(feature_columns)
 
-feature_columns = X.columns
-
-joblib.dump(
-    feature_columns,
-    "feature_columns.pkl"
-)
 
 # ==========================================
 # TRAIN TEST SPLIT
 # ==========================================
-
-y = df["Selling_Price"]
 
 X_train, X_test, y_train, y_test = train_test_split(
     X,
@@ -117,87 +118,50 @@ X_train, X_test, y_train, y_test = train_test_split(
     random_state=42
 )
 
+
 # ==========================================
 # RANDOM FOREST MODEL
+# Smaller model to keep pkl below GitHub 100MB
 # ==========================================
 
 model = RandomForestRegressor(
-    n_estimators=300,
-    max_depth=15,
-    random_state=42
+    n_estimators=100,
+    max_depth=12,
+    min_samples_leaf=2,
+    random_state=42,
+    n_jobs=-1
 )
 
+print("\nTraining model...")
 model.fit(X_train, y_train)
 
-# ==========================================
-# PREDICTIONS
-# ==========================================
-
-predictions = model.predict(X_test)
 
 # ==========================================
 # EVALUATION
 # ==========================================
 
-r2 = r2_score(y_test, predictions)
+y_pred = model.predict(X_test)
 
-mae = mean_absolute_error(
-    y_test,
-    predictions
-)
+r2 = r2_score(y_test, y_pred)
+mae = mean_absolute_error(y_test, y_pred)
+rmse = np.sqrt(mean_squared_error(y_test, y_pred))
 
-rmse = np.sqrt(
-    mean_squared_error(
-        y_test,
-        predictions
-    )
-)
+print("\n===== MODEL PERFORMANCE =====")
+print(f"R² Score : {r2:.4f}")
+print(f"MAE      : ₹ {mae:,.2f}")
+print(f"RMSE     : ₹ {rmse:,.2f}")
 
-print("\n========================")
-print("MODEL PERFORMANCE")
-print("========================")
-
-print("R2 Score :", round(r2,4))
-print("MAE      :", round(mae,4))
-print("RMSE     :", round(rmse,4))
-
-# ==========================================
-# FEATURE IMPORTANCE
-# ==========================================
-
-importance = pd.DataFrame({
-    "Feature": X.columns,
-    "Importance": model.feature_importances_
-})
-
-importance = importance.sort_values(
-    by="Importance",
-    ascending=False
-)
-
-print("\nTop Important Features")
-print(importance.head(10))
-
-plt.figure(figsize=(10,6))
-
-sns.barplot(
-    data=importance.head(10),
-    x="Importance",
-    y="Feature"
-)
-
-plt.title("Top 10 Important Features")
-plt.show()
 
 # ==========================================
 # SAVE MODEL
 # ==========================================
 
-joblib.dump(
-    model,
-    "random_forest.pkl"
-)
+os.makedirs("models", exist_ok=True)
 
-print("\nModel Saved Successfully")
-print("random_forest.pkl")
-print("feature_columns.pkl")
+joblib.dump(model, "models/random_forest.pkl", compress=3)
+joblib.dump(feature_columns, "feature_columns.pkl")
+
+size_mb = os.path.getsize("models/random_forest.pkl") / (1024 * 1024)
+
+print("\nModel saved successfully!")
+print(f"Model file size: {size_mb:.2f} MB")
