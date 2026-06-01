@@ -401,7 +401,7 @@ with tab2:
     st.subheader("📊 Exploratory Data Analysis")
 
     if df_raw is None:
-        st.warning("⚠️ Dataset file 'car data.csv' not found. EDA charts unavailable.")
+        st.warning("⚠️ Dataset file 'car_data.csv' not found. EDA charts unavailable.")
     else:
         try:
             import matplotlib.pyplot as plt
@@ -503,7 +503,7 @@ with tab3:
     st.subheader("🤖 Model Performance & Insights")
 
     if df_raw is None:
-        st.warning("⚠️ Dataset file 'car data.csv' not found. Model evaluation unavailable.")
+        st.warning("⚠️ Dataset file 'car_data.csv' not found. Model evaluation unavailable.")
     else:
         try:
             from sklearn.model_selection import train_test_split
@@ -618,7 +618,7 @@ with tab4:
     st.subheader("📋 Dataset Preview")
 
     if df_raw is None:
-        st.warning("⚠️ Dataset file 'car data.csv' not found.")
+        st.warning("⚠️ Dataset file 'car_data.csv' not found.")
     else:
         st.markdown(f"**Total Records:** {len(df_raw)} &nbsp;&nbsp; **Columns:** {len(df_raw.columns)}")
 
