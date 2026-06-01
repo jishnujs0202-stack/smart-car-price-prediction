@@ -85,6 +85,9 @@ def load_data():
 
 model, feature_columns = load_model()
 df_raw = load_data()
+
+st.write("FEATURE COLUMNS")
+st.write(feature_columns)
 st.write("MODEL FEATURES")
 st.write(feature_columns)
 # Auto-detect selling price column
