@@ -144,7 +144,7 @@ to estimate the resale value of used cars.
 
 ### Developer
 
-**Jishnu S**
+** J S Jishnu **
 
 B.Tech CSE-AIDE
 """)
