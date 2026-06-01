@@ -157,7 +157,7 @@ with c1:
 with c2:
     st.markdown(f"""
     <div class='metric-card'>
-    <h3>{len(df_raw):,}</h3>
+    <h3>8128 TEST</h3>
     <p>Cars</p>
     </div>
     """, unsafe_allow_html=True)
