@@ -85,8 +85,6 @@ def load_data():
 model, feature_columns = load_model()
 df_raw = load_data()
 
-st.write("TOTAL FEATURES =", len(feature_columns))
-st.write(feature_columns)
 
 # Auto-detect selling price column
 price_col = None
@@ -268,61 +266,60 @@ with tab1:
     car_age = datetime.now().year - purchase_year
 
     st.info(f"Car Age: {car_age} years")
+if st.button("Predict Price"):
 
-    if st.button("Predict Price"):
+    input_data = {col: 0 for col in feature_columns}
 
-        input_data = {
-            "km_driven": km_driven,
-            "mileage": mileage,
-            "engine": engine,
-            "max_power": max_power,
-            "seats": seats,
-            "car_age": car_age,
-            "Car_Age": car_age
-        }
+    # Numerical Features
+    input_data["km_driven"] = km_driven
+    input_data["mileage"] = mileage
+    input_data["engine"] = engine
+    input_data["max_power"] = max_power
+    input_data["seats"] = seats
+    input_data["Car_Age"] = car_age
 
-        for col in feature_columns:
-            if col not in input_data:
-                input_data[col] = 0
+    # Fuel
+    fuel_feature = f"fuel_{fuel}"
+    if fuel_feature in input_data:
+        input_data[fuel_feature] = 1
 
-        fuel_col = f"fuel_{fuel}"
-        if fuel_col in input_data:
-            input_data[fuel_col] = 1
+    # Seller Type
+    seller_feature = f"seller_type_{seller_type}"
+    if seller_feature in input_data:
+        input_data[seller_feature] = 1
 
-        seller_col = f"seller_type_{seller_type}"
-        if seller_col in input_data:
-            input_data[seller_col] = 1
+    # Transmission
+    transmission_feature = f"transmission_{transmission}"
+    if transmission_feature in input_data:
+        input_data[transmission_feature] = 1
 
-        trans_col = f"transmission_{transmission}"
-        if trans_col in input_data:
-            input_data[trans_col] = 1
+    # Owner
+    owner_feature = f"owner_{owner}"
+    if owner_feature in input_data:
+        input_data[owner_feature] = 1
 
-        owner_col = f"owner_{owner}"
-        if owner_col in input_data:
-            input_data[owner_col] = 1
+    input_df = pd.DataFrame([input_data])
 
-        input_df = pd.DataFrame([input_data])
+    prediction = model.predict(input_df)[0]
 
-        input_df = input_df.reindex(
-            columns=feature_columns,
-            fill_value=0
-        )
+    prediction = max(0, prediction)
 
-        prediction = model.predict(input_df)[0]
+    lower = prediction * 0.90
+    upper = prediction * 1.10
 
-        lower = prediction * 0.9
-        upper = prediction * 1.1
-
-        st.markdown(f"""
+    st.markdown(
+        f"""
         <div class='prediction-card'>
         Estimated Price<br><br>
         ₹ {prediction:,.0f}
         </div>
-        """, unsafe_allow_html=True)
+        """,
+        unsafe_allow_html=True
+    )
 
-        st.success(
-            f"Estimated Range: ₹ {lower:,.0f} - ₹ {upper:,.0f}"
-        )
+    st.success(
+        f"Estimated Range: ₹ {lower:,.0f} - ₹ {upper:,.0f}"
+    )
 
 # --------------------------
 # EDA
