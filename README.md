@@ -99,5 +99,5 @@ streamlit run app.py
 
 ## Author
 
-Jishnu S
+J S Jishnu 
 B.Tech CSE-AIDE
